@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Fietsweer Pro: Paarse Route & Windrozen</title>
+    <title>Tailwind: Fietsroute & Weer</title>
     
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     
@@ -12,69 +12,93 @@
         #map { height: 100vh; width: 100%; z-index: 1; }
         
         #controls {
-            position: absolute;
-            top: 20px; left: 20px; z-index: 1000;
+            position: absolute; top: 20px; left: 20px; z-index: 1000;
             background: white; padding: 20px; border-radius: 12px;
             box-shadow: 0 8px 20px rgba(0,0,0,0.2);
-            width: 320px; max-height: 90vh; overflow-y: auto;
+            width: 340px; max-height: 90vh; overflow-y: auto;
         }
-        h2 { margin-top: 0; font-size: 20px; color: #333; }
-        h3 { font-size: 16px; margin-bottom: 5px; color: #555; border-bottom: 1px solid #eee; padding-bottom: 5px; margin-top: 20px;}
+        h2 { margin-top: 0; font-size: 20px; color: #333; margin-bottom: 15px; }
         
+        /* Tabs */
+        .tabs { display: flex; border-bottom: 2px solid #eee; margin-bottom: 15px; }
+        .tab { flex: 1; padding: 10px; text-align: center; cursor: pointer; color: #666; font-weight: 600; font-size: 14px;}
+        .tab.active { color: #007bff; border-bottom: 2px solid #007bff; }
+        
+        .mode-section { display: none; }
+        .mode-section.active { display: block; }
+
         label { display: block; margin-top: 10px; font-weight: 600; font-size: 13px; color: #444;}
         input, select, button { width: 100%; margin-top: 5px; padding: 10px; box-sizing: border-box; border-radius: 6px; border: 1px solid #ddd; }
         
-        button.primary { background-color: #007bff; color: white; border: none; cursor: pointer; font-weight: bold; margin-top: 15px; }
+        /* Input groepjes voor adressen */
+        .input-group { margin-bottom: 10px; }
+        .input-group label { margin-top:0; font-size: 11px; color:#888; text-transform: uppercase; letter-spacing: 0.5px;}
+        
+        button.primary { background-color: #007bff; color: white; border: none; cursor: pointer; font-weight: bold; margin-top: 15px; transition: 0.2s; }
         button.primary:hover { background-color: #0056b3; }
+        
         button.secondary { background-color: #6c757d; color: white; border: none; cursor: pointer; margin-top: 5px; }
-        button.secondary:hover { background-color: #5a6268; }
-
+        
+        #status { margin-top: 15px; font-size: 13px; padding: 10px; background: #f8f9fa; border-radius: 6px; color: #555; line-height: 1.4; }
+        
         .legend { display: flex; justify-content: space-between; margin-top: 15px; font-size: 12px; }
         .dot { width: 10px; height: 10px; display: inline-block; border-radius: 50%; margin-right: 5px; }
         
-        #status { margin-top: 10px; font-size: 13px; color: #666; font-style: italic; }
-        
-        /* NIEUWE STIJLEN VOOR DE WINDROOS */
-        .wind-arrow-container {
-            display: flex; align-items: center; justify-content: center;
-            /* Zorgt dat het icoon netjes om zijn as draait */
-            transform-origin: center center;
-        }
-        /* Een lichte schaduw achter de cirkel zodat hij loskomt van de kaart */
-        .wind-rose-svg {
-            filter: drop-shadow(0px 2px 4px rgba(0,0,0,0.3));
-        }
+        .wind-arrow-container { display: flex; align-items: center; justify-content: center; transform-origin: center center; }
+        .wind-rose-svg { filter: drop-shadow(0px 2px 4px rgba(0,0,0,0.3)); }
     </style>
 </head>
 <body>
 
 <div id="controls">
-    <h2>🚴 Fietsweer Pro</h2>
+    <h2>🚴 Tailwind</h2>
     
-    <h3>1. Route Kiezen</h3>
-    <input type="file" id="gpxInput" accept=".gpx">
-    <div style="text-align: center; margin: 5px 0;">- OF -</div>
-    <select id="savedRoutesSelect">
-        <option value="">-- Kies opgeslagen route --</option>
-    </select>
-    <button class="secondary" onclick="loadSavedRoute()">Laad Geselecteerde Route</button>
+    <div class="tabs">
+        <div class="tab active" onclick="switchTab('upload')">📂 Bestand</div>
+        <div class="tab" onclick="switchTab('plan')">📍 Adres / Klik</div>
+    </div>
 
-    <h3>2. Planning</h3>
+    <div id="section-upload" class="mode-section active">
+        <p style="font-size:13px; color:#666; margin:0 0 10px 0;">Upload GPX van Strava/Komoot.</p>
+        <input type="file" id="gpxInput" accept=".gpx">
+        <div style="text-align: center; margin: 5px 0; font-size:12px; color:#999;">- OF -</div>
+        <select id="savedRoutesSelect">
+            <option value="">-- Kies opgeslagen route --</option>
+        </select>
+        <button class="secondary" onclick="loadSavedRoute()">Laad Route</button>
+    </div>
+
+    <div id="section-plan" class="mode-section">
+        <div class="input-group">
+            <label>Vertrekpunt</label>
+            <input type="text" id="startInput" placeholder="Bijv. Groningen of klik op kaart">
+        </div>
+        <div class="input-group">
+            <label>Bestemming</label>
+            <input type="text" id="endInput" placeholder="Bijv. Assen of klik op kaart">
+        </div>
+        
+        <button class="primary" style="margin-top:5px; background-color:#2ecc71;" onclick="planRouteViaText()">🚀 Plan Route</button>
+        <button class="secondary" onclick="resetPlanning()" style="background:#e74c3c; margin-top:10px;">Reset</button>
+    </div>
+
+    <hr style="border:0; border-top:1px solid #eee; margin: 15px 0;">
+
+    <h3>Instellingen</h3>
     <label>Startdatum & Tijd</label>
     <input type="datetime-local" id="startTime">
 
     <label>Gemiddelde snelheid (km/u)</label>
     <input type="number" id="speed" value="25" min="10" max="50">
 
-    <button class="primary" onclick="calculateWeather()">☀️ Bereken Weer & Wind</button>
+    <button class="primary" onclick="calculateWeather()">☀️ Bereken Weer</button>
     
-    <div id="saveSection" style="display:none; border-top: 1px solid #eee; margin-top: 15px; padding-top: 10px;">
-        <label>Route opslaan als:</label>
-        <input type="text" id="routeNameInput" placeholder="Bijv. Rondje Veluwe">
-        <button class="secondary" onclick="saveCurrentRoute()">💾 Route Opslaan</button>
+    <div id="saveSection" style="display:none; margin-top: 15px;">
+        <input type="text" id="routeNameInput" placeholder="Naam route">
+        <button class="secondary" onclick="saveCurrentRoute()">💾 Opslaan</button>
     </div>
 
-    <div id="status"></div>
+    <div id="status">Klaar voor start.</div>
 
     <div class="legend">
         <span><span class="dot" style="background:red;"></span>Tegenwind</span>
@@ -88,24 +112,174 @@
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
 <script>
-    // --- SETUP ---
+    // ==========================================
+    // 🔑 API CONFIGURATIE
+    // ==========================================
+    // Haal je gratis key op bij: https://openrouteservice.org/dev/#/signup
+    const ORS_API_KEY = eyJvcmciOiI1YjNjZTM1OTc4NTExMTAwMDFjZjYyNDgiLCJpZCI6IjUxYjJiZDRmYTBhNzRiNjI4NjlhMWJhNjg4MWE4YWFjIiwiaCI6Im11cm11cjY0In0=; 
+    // ==========================================
+
+    // --- MAP SETUP ---
     const map = L.map('map').setView([52.1, 5.1], 8);
     L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
-    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
-    subdomains: 'abcd',    maxZoom: 20 }).addTo(map);
+        attribution: '&copy; OpenStreetMap &copy; CARTO',
+        maxZoom: 20
+    }).addTo(map);
 
     let currentRoutePoints = []; 
-    // We gebruiken nu twee lagen: één voor de route lijn, één voor de wind markers
     let routeLayerGroup = L.layerGroup().addTo(map);
     let markerLayerGroup = L.layerGroup().addTo(map);
+    let planningMarkersGroup = L.layerGroup().addTo(map);
 
+    let isPlanningMode = false;
+    let planCoords = [null, null]; // [Start, Eind]
+
+    // Datum setup
     const now = new Date();
     now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
     document.getElementById('startTime').value = now.toISOString().slice(0,16);
 
     updateSavedRoutesDropdown();
 
-    // --- GPX ---
+    // --- TABS LOGICA ---
+    function switchTab(mode) {
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.mode-section').forEach(s => s.classList.remove('active'));
+        
+        if (mode === 'upload') {
+            document.querySelector('.tab:nth-child(1)').classList.add('active');
+            document.getElementById('section-upload').classList.add('active');
+            isPlanningMode = false;
+        } else {
+            document.querySelector('.tab:nth-child(2)').classList.add('active');
+            document.getElementById('section-plan').classList.add('active');
+            isPlanningMode = true;
+        }
+    }
+    window.switchTab = switchTab;
+
+    // --- KLIK OP KAART (Vult inputvelden) ---
+    map.on('click', function(e) {
+        if (!isPlanningMode) return;
+        
+        const coord = [e.latlng.lat, e.latlng.lng];
+        
+        if (planCoords[0] === null) {
+            planCoords[0] = coord;
+            document.getElementById('startInput').value = `${coord[0].toFixed(5)}, ${coord[1].toFixed(5)}`;
+            addPlanningMarker(coord, 'A', 'green');
+        } else if (planCoords[1] === null) {
+            planCoords[1] = coord;
+            document.getElementById('endInput').value = `${coord[0].toFixed(5)}, ${coord[1].toFixed(5)}`;
+            addPlanningMarker(coord, 'B', 'red');
+        }
+    });
+
+    function addPlanningMarker(coord, label, color) {
+        const icon = L.divIcon({
+            html: `<div style="background:${color}; color:white; width:24px; height:24px; border-radius:50%; text-align:center; line-height:24px; font-weight:bold; border:2px solid white; box-shadow:0 2px 5px rgba(0,0,0,0.3);">${label}</div>`,
+            className: ''
+        });
+        L.marker(coord, {icon: icon}).addTo(planningMarkersGroup);
+    }
+
+    // --- STAP 1: ADRESSEN ZOEKEN (GEOCODING) ---
+    async function planRouteViaText() {
+        if (ORS_API_KEY.includes("PLAK_HIER")) {
+            alert("Vul eerst je API Key in de code in (regel 146)!");
+            return;
+        }
+
+        const startText = document.getElementById('startInput').value;
+        const endText = document.getElementById('endInput').value;
+        
+        if (!startText || !endText) { alert("Vul start- en eindpunt in."); return; }
+        
+        document.getElementById('status').innerText = "🔎 Adressen zoeken...";
+        
+        // Zoek startpunt
+        let startRes = startText.includes(',') ? parseCoord(startText) : await geocodeAddress(startText);
+        // Zoek eindpunt
+        let endRes = endText.includes(',') ? parseCoord(endText) : await geocodeAddress(endText);
+
+        if (startRes && endRes) {
+            // Update map view
+            planningMarkersGroup.clearLayers();
+            planCoords = [startRes, endRes];
+            addPlanningMarker(startRes, 'A', 'green');
+            addPlanningMarker(endRes, 'B', 'red');
+            
+            const group = new L.featureGroup([L.marker(startRes), L.marker(endRes)]);
+            map.fitBounds(group.getBounds().pad(0.2));
+
+            document.getElementById('status').innerText = "🚴 Route berekenen...";
+            await calculateRouteFromORS(startRes, endRes);
+        } else {
+            document.getElementById('status').innerText = "❌ Kon adres niet vinden.";
+        }
+    }
+
+    function parseCoord(text) {
+        const parts = text.split(',');
+        return [parseFloat(parts[0]), parseFloat(parts[1])];
+    }
+
+    // API Call naar OpenRouteService Geocoding
+    async function geocodeAddress(text) {
+        const url = `https://api.openrouteservice.org/geocode/search?api_key=${ORS_API_KEY}&text=${encodeURIComponent(text)}&boundary.country=NL,BE`;
+        try {
+            const res = await fetch(url);
+            const data = await res.json();
+            if (data.features && data.features.length > 0) {
+                const c = data.features[0].geometry.coordinates;
+                return [c[1], c[0]]; // ORS is Lon,Lat -> Leaflet is Lat,Lon
+            }
+        } catch (e) { console.error(e); }
+        alert(`Kon '${text}' niet vinden.`);
+        return null;
+    }
+
+    // --- STAP 2: ROUTE BEREKENEN ---
+    async function calculateRouteFromORS(start, end) {
+        // ORS verwacht Lon,Lat
+        const startLonLat = `${start[1]},${start[0]}`;
+        const endLonLat = `${end[1]},${end[0]}`;
+        const url = `https://api.openrouteservice.org/v2/directions/cycling-regular?api_key=${ORS_API_KEY}&start=${startLonLat}&end=${endLonLat}`;
+
+        try {
+            const res = await fetch(url);
+            const data = await res.json();
+
+            if (data.features && data.features.length > 0) {
+                // ORS geeft Lon,Lat terug, wij moeten naar Lat,Lon
+                const coords = data.features[0].geometry.coordinates;
+                currentRoutePoints = coords.map(c => [c[1], c[0]]);
+                
+                showPreviewLine();
+                
+                const distance = Math.round(data.features[0].properties.segments[0].distance / 1000);
+                document.getElementById('status').innerText = `✅ Route gevonden: ${distance} km.\nKlik op 'Bereken Weer'.`;
+                document.getElementById('saveSection').style.display = 'block';
+            } else {
+                throw new Error("Geen route gevonden tussen deze punten.");
+            }
+        } catch (e) {
+            document.getElementById('status').innerText = "Fout bij route: " + e.message;
+        }
+    }
+
+    function resetPlanning() {
+        planCoords = [null, null];
+        document.getElementById('startInput').value = '';
+        document.getElementById('endInput').value = '';
+        planningMarkersGroup.clearLayers();
+        routeLayerGroup.clearLayers();
+        markerLayerGroup.clearLayers();
+        currentRoutePoints = [];
+        document.getElementById('status').innerText = "Gereset.";
+    }
+
+    // --- GPX VERWERKING (Bestaande code) ---
     document.getElementById('gpxInput').addEventListener('change', function(e) {
         const file = e.target.files[0];
         if (!file) return;
@@ -118,71 +292,77 @@
             for (let pt of trkpts) {
                 currentRoutePoints.push([parseFloat(pt.getAttribute('lat')), parseFloat(pt.getAttribute('lon'))]);
             }
+            planningMarkersGroup.clearLayers();
+            resetPlanningUIOnly();
             showPreviewLine();
             document.getElementById('saveSection').style.display = 'block';
-            document.getElementById('status').innerText = "Route geladen. Klik op 'Bereken Weer'.";
+            document.getElementById('status').innerText = "GPX geladen. Klik 'Bereken Weer'.";
         };
         reader.readAsText(file);
     });
 
-    // AANGEPAST: Preview lijn is nu PAARS en solide
+    function resetPlanningUIOnly() {
+        planCoords = [null, null];
+        document.getElementById('startInput').value = '';
+        document.getElementById('endInput').value = '';
+    }
+
     function showPreviewLine() {
         routeLayerGroup.clearLayers();
         markerLayerGroup.clearLayers();
         if (currentRoutePoints.length > 0) {
-            // Mooie paarse kleur (#8e44ad), iets dikker, geen stippellijn meer
             const line = L.polyline(currentRoutePoints, {color: '#8e44ad', weight: 5, opacity: 0.8}).addTo(routeLayerGroup);
             map.fitBounds(line.getBounds());
         }
     }
 
-    // --- BEREKENING ---
+    // --- STAP 3: WEER BEREKENEN (Open-Meteo) ---
     async function calculateWeather() {
-        if (currentRoutePoints.length === 0) { alert("Geen route geladen!"); return; }
+        if (currentRoutePoints.length === 0) { alert("Geen route om te berekenen!"); return; }
         
         const speed = parseFloat(document.getElementById('speed').value);
         const startTime = new Date(document.getElementById('startTime').value);
         const status = document.getElementById('status');
         
-        status.innerText = "Data ophalen en rekenen...";
+        status.innerText = "☁️ Weerdata ophalen...";
         routeLayerGroup.clearLayers(); 
-        markerLayerGroup.clearLayers(); // Ook markers wissen bij nieuwe berekening
+        markerLayerGroup.clearLayers(); 
 
         let totalDist = 0;
         let lastWeatherDist = -100;
         let chunkStartIdx = 0;
         let lastWeather = null;
 
+        // Loop door de routepunten
         for (let i = 1; i < currentRoutePoints.length; i++) {
             const p1 = currentRoutePoints[i-1];
             const p2 = currentRoutePoints[i];
             const dist = getDistance(p1[0], p1[1], p2[0], p2[1]);
             totalDist += dist;
 
-            // Elke 15km
+            // Om de 15km (of bij start) weer ophalen
             if (totalDist - lastWeatherDist >= 15 || i === 1) {
-                if (i > 1 && lastWeather) {
-                    drawColoredSegment(chunkStartIdx, i, lastWeather);
-                }
+                // Teken vorig segment
+                if (i > 1 && lastWeather) { drawColoredSegment(chunkStartIdx, i, lastWeather); }
+                
                 lastWeatherDist = totalDist;
                 chunkStartIdx = i;
 
+                // Bereken hoe laat we hier zijn
                 const hoursCycling = totalDist / speed;
-                const arrivalTime = new Date(startTime.getTime() + hoursCycling * 60 * 60 * 1000);
+                const arrivalTime = new Date(startTime.getTime() + hoursCycling * 3600000);
                 
+                // Haal weer op voor dit punt + tijdstip
                 lastWeather = await getWeatherData(p2[0], p2[1], arrivalTime);
                 
-                if (lastWeather) {
-                    addMarker(p2[0], p2[1], lastWeather, Math.round(totalDist), arrivalTime);
+                if (lastWeather) { 
+                    addMarker(p2[0], p2[1], lastWeather, Math.round(totalDist), arrivalTime); 
                 }
             }
         }
-        
-        if (lastWeather) {
-            drawColoredSegment(chunkStartIdx, currentRoutePoints.length - 1, lastWeather);
-        }
-        
-        status.innerText = "Klaar!";
+        // Teken laatste stukje
+        if (lastWeather) { drawColoredSegment(chunkStartIdx, currentRoutePoints.length - 1, lastWeather); }
+        status.innerText = "✅ Analyse voltooid!";
     }
 
     function drawColoredSegment(startIndex, endIndex, weather) {
@@ -191,28 +371,22 @@
             const pB = currentRoutePoints[j+1];
             const bearing = getBearing(pA[0], pA[1], pB[0], pB[1]);
             const color = getWindColor(bearing, weather.dir);
-            // Lijn iets dikker gemaakt (weight: 6)
             L.polyline([pA, pB], {color: color, weight: 6, opacity: 0.9}).addTo(routeLayerGroup);
         }
     }
 
-    // --- KLEUREN LOGICA (Jouw werkende versie) ---
     function getWindColor(bearing, windDir) {
         let diff = Math.abs(bearing - windDir);
-        if (diff > 180) diff = 360 - diff; 
-        if (diff < 45) return 'green';  // Tegenwind op kaart (label zegt Tegenwind)
-        if (diff > 135) return 'red';   // Meewind op kaart (label zegt Meewind)
-        return 'blue';                  // Zijwind
+        if (diff > 180) diff = 360 - diff;
+        if (diff < 45) return 'red'; // Tegenwind
+        if (diff > 135) return 'green'; // Meewind
+        return 'blue'; // Zijwind
     }
 
-    // --- WISKUNDE ---
-    function getDistance(lat1, lon1, lat2, lon2) { const R = 6371; const dLat = (lat2 - lat1) * Math.PI / 180; const dLon = (lon2 - lon1) * Math.PI / 180; const a = Math.sin(dLat/2) * Math.sin(dLat/2) + Math.cos(lat1 * Math.PI/180) * Math.cos(lat2 * Math.PI/180) * Math.sin(dLon/2) * Math.sin(dLon/2); return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));}
-    function getBearing(lat1, lon1, lat2, lon2) { const y = Math.sin(lon2 - lon1) * Math.cos(lat2); const x = Math.cos(lat1) * Math.sin(lat2) - Math.sin(lat1) * Math.cos(lat2) * Math.cos(lon2 - lon1); return (Math.atan2(y, x) * 180 / Math.PI + 360) % 360;}
-
-    // --- API CALL ---
     async function getWeatherData(lat, lon, time) {
         const dateStr = time.toISOString().split('T')[0];
         const hour = time.getHours();
+        // Open-Meteo API (Gratis, geen key nodig)
         const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&hourly=windspeed_10m,winddirection_10m&start_date=${dateStr}&end_date=${dateStr}`;
         try {
             const res = await fetch(url);
@@ -221,45 +395,38 @@
                 return { spd: data.hourly.windspeed_10m[hour], dir: data.hourly.winddirection_10m[hour] };
             }
             return null;
-        } catch(e) { console.log(e); return null; }
+        } catch(e) { return null; }
     }
 
-    // --- NIEUWE MARKER FUNCTIE: WINDROOS ---
     function addMarker(lat, lon, w, km, time) {
-        // Kleur bepalen voor de naald
-        let color = '#0099ff'; // Blauw
+        let color = '#0099ff'; 
         if (w.spd >= 15) color = 'orange';
         if (w.spd >= 30) color = 'red';
-
-        const size = 40; // Grootte van het icoon
-
-        // SVG Windroos Ontwerp: Witte cirkel met gekleurde naald
+        const size = 40; 
+        // SVG Pijl
         const svg = `
         <svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 40 40" class="wind-rose-svg">
-             <circle cx="20" cy="20" r="18" fill="rgba(255,255,255,0.9)" stroke="#ccc" stroke-width="1"/>
+             <circle cx="20" cy="20" r="18" fill="rgba(255,255,255,0.95)" stroke="#666" stroke-width="1"/>
              <path d="M20 5 L30 32 L10 32 Z" fill="${color}" />
+             <circle cx="20" cy="24" r="2" fill="white"/>
         </svg>`;
-
+        
+        // Pijl draaien op basis van windrichting
         const icon = L.divIcon({ 
-            // De container draait de hele SVG op basis van windrichting
-            html: `<div class="wind-arrow-container" style="transform: rotate(${w.dir}deg)">${svg}</div>`, 
-            className: '', // Lege class om standaard leaflet stijlen te voorkomen
-            iconSize: [size, size],
-            // HIER ZIT DE TRUC VOOR DE PLAATSING:
-            // Normaal anker is [size/2, size/2] (het midden).
-            // Door de Y-waarde kleiner te maken (bijv. 0), schuift het icoon naar BENEDEN t.o.v. het punt.
-            iconAnchor: [size / 2, 0] 
+            html: `<div class="wind-arrow-container" style="transform: rotate(${w.dir + 180}deg)">${svg}</div>`, 
+            className: '', iconSize: [size, size], iconAnchor: [size / 2, -20] 
         });
         
-        // Marker toevoegen aan de speciale markerLayerGroup
+        const timeStr = time.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+        
         L.marker([lat, lon], {icon: icon}).addTo(markerLayerGroup)
-         .bindPopup(`<b>${km}km punt</b><br>Tijd: ${time.getHours()}:00<br>Wind: ${w.spd} km/u`);
+         .bindPopup(`<b>${km}km punt</b><br>Tijd: ${timeStr}<br>Wind: ${w.spd} km/u`);
     }
 
-    // --- OPSLAAN & LADEN ---
+    // --- HULPFUNCTIES & OPSLAAN ---
     function saveCurrentRoute() {
         const name = document.getElementById('routeNameInput').value;
-        if (!name || currentRoutePoints.length === 0) { alert("Geen naam of route!"); return; }
+        if (!name) return;
         localStorage.setItem('fietsroute_' + name, JSON.stringify(currentRoutePoints));
         alert('Route opgeslagen!');
         updateSavedRoutesDropdown();
@@ -270,9 +437,8 @@
         for (let i = 0; i < localStorage.length; i++) {
             const key = localStorage.key(i);
             if (key.startsWith('fietsroute_')) {
-                const name = key.replace('fietsroute_', '');
                 const opt = document.createElement('option');
-                opt.value = key; opt.innerText = name;
+                opt.value = key; opt.innerText = key.replace('fietsroute_', '');
                 select.appendChild(opt);
             }
         }
@@ -284,9 +450,14 @@
         if (data) {
             currentRoutePoints = JSON.parse(data);
             showPreviewLine();
-            document.getElementById('status').innerText = "Opgeslagen route geladen. Kies tijd en klik 'Bereken'.";
+            document.getElementById('status').innerText = "Route geladen.";
+            document.getElementById('saveSection').style.display = 'block';
         }
     }
+
+    // Wiskunde voor afstand en richting
+    function getDistance(lat1, lon1, lat2, lon2) { const R=6371; const dLat=(lat2-lat1)*Math.PI/180; const dLon=(lon2-lon1)*Math.PI/180; const a=Math.sin(dLat/2)*Math.sin(dLat/2)+Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLon/2)*Math.sin(dLon/2); return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));}
+    function getBearing(lat1, lon1, lat2, lon2) { const y=Math.sin(lon2-lon1)*Math.cos(lat2); const x=Math.cos(lat1)*Math.sin(lat2)-Math.sin(lat1)*Math.cos(lat2)*Math.cos(lon2-lon1); return (Math.atan2(y,x)*180/Math.PI+360)%360;}
 </script>
 
 </body>
